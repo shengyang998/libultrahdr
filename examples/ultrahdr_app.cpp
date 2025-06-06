@@ -304,7 +304,19 @@ class UltraHdrAppInput {
         mMinContentBoost(minContentBoost),
         mMaxContentBoost(maxContentBoost),
         mTargetDispPeakBrightness(targetDispPeakBrightness),
-        mMode(0){};
+        mMode(0),
+        mOutCodec(UHDR_CODEC_JPG),
+        mDisplayBoost(1.0f),
+        mMirrorDir(-1),
+        mRotateDegrees(0),
+        mCropEnable(false),
+        mCropLeft(0),
+        mCropRight(0),
+        mCropTop(0),
+        mCropBottom(0),
+        mResizeEnable(false),
+        mResizeWidth(0),
+        mResizeHeight(0){};
 
   UltraHdrAppInput(const char* gainmapMetadataCfgFile, const char* uhdrFile, const char* outputFile,
                    uhdr_color_transfer_t oTf = UHDR_CT_HLG,
@@ -337,7 +349,19 @@ class UltraHdrAppInput {
         mMinContentBoost(FLT_MIN),
         mMaxContentBoost(FLT_MAX),
         mTargetDispPeakBrightness(-1.0f),
-        mMode(1){};
+        mMode(1),
+        mOutCodec(UHDR_CODEC_JPG),
+        mDisplayBoost(1.0f),
+        mMirrorDir(-1),
+        mRotateDegrees(0),
+        mCropEnable(false),
+        mCropLeft(0),
+        mCropRight(0),
+        mCropTop(0),
+        mCropBottom(0),
+        mResizeEnable(false),
+        mResizeWidth(0),
+        mResizeHeight(0){};
 
   ~UltraHdrAppInput() {
     int count = sizeof mRawP010Image.planes / sizeof mRawP010Image.planes[UHDR_PLANE_Y];
@@ -426,6 +450,20 @@ class UltraHdrAppInput {
   const float mMaxContentBoost;
   const float mTargetDispPeakBrightness;
   const int mMode;
+
+  // Additional configuration
+  uhdr_codec_t mOutCodec;
+  float mDisplayBoost;
+  int mMirrorDir;
+  int mRotateDegrees;
+  bool mCropEnable;
+  int mCropLeft;
+  int mCropRight;
+  int mCropTop;
+  int mCropBottom;
+  bool mResizeEnable;
+  int mResizeWidth;
+  int mResizeHeight;
 
   uhdr_raw_image_t mRawP010Image{};
   uhdr_raw_image_t mRawRgba1010102Image{};
@@ -779,6 +817,7 @@ bool UltraHdrAppInput::encode() {
   RET_IF_ERR(uhdr_enc_set_gainmap_scale_factor(handle, mMapDimensionScaleFactor))
   RET_IF_ERR(uhdr_enc_set_gainmap_gamma(handle, mGamma))
   RET_IF_ERR(uhdr_enc_set_preset(handle, mEncPreset))
+  RET_IF_ERR(uhdr_enc_set_output_format(handle, mOutCodec))
   if (mMinContentBoost != FLT_MIN || mMaxContentBoost != FLT_MAX) {
     RET_IF_ERR(uhdr_enc_set_min_max_content_boost(handle, mMinContentBoost, mMaxContentBoost))
   }
@@ -787,6 +826,20 @@ bool UltraHdrAppInput::encode() {
   }
   if (mEnableGLES) {
     RET_IF_ERR(uhdr_enable_gpu_acceleration(handle, mEnableGLES))
+  }
+  if (mMirrorDir != -1) {
+    RET_IF_ERR(uhdr_add_effect_mirror(handle,
+                                      mMirrorDir == 0 ? UHDR_MIRROR_VERTICAL : UHDR_MIRROR_HORIZONTAL))
+  }
+  if (mRotateDegrees) {
+    RET_IF_ERR(uhdr_add_effect_rotate(handle, mRotateDegrees))
+  }
+  if (mCropEnable) {
+    RET_IF_ERR(
+        uhdr_add_effect_crop(handle, mCropLeft, mCropRight, mCropTop, mCropBottom))
+  }
+  if (mResizeEnable) {
+    RET_IF_ERR(uhdr_add_effect_resize(handle, mResizeWidth, mResizeHeight))
   }
 #ifdef PROFILE_ENABLE
   Profiler profileEncode;
@@ -837,8 +890,23 @@ bool UltraHdrAppInput::decode() {
   RET_IF_ERR(uhdr_dec_set_image(handle, &mUhdrImage))
   RET_IF_ERR(uhdr_dec_set_out_color_transfer(handle, mOTf))
   RET_IF_ERR(uhdr_dec_set_out_img_format(handle, mOfmt))
+  RET_IF_ERR(uhdr_dec_set_out_max_display_boost(handle, mDisplayBoost))
   if (mEnableGLES) {
     RET_IF_ERR(uhdr_enable_gpu_acceleration(handle, mEnableGLES))
+  }
+  if (mMirrorDir != -1) {
+    RET_IF_ERR(uhdr_add_effect_mirror(handle,
+                                      mMirrorDir == 0 ? UHDR_MIRROR_VERTICAL : UHDR_MIRROR_HORIZONTAL))
+  }
+  if (mRotateDegrees) {
+    RET_IF_ERR(uhdr_add_effect_rotate(handle, mRotateDegrees))
+  }
+  if (mCropEnable) {
+    RET_IF_ERR(
+        uhdr_add_effect_crop(handle, mCropLeft, mCropRight, mCropTop, mCropBottom))
+  }
+  if (mResizeEnable) {
+    RET_IF_ERR(uhdr_add_effect_resize(handle, mResizeWidth, mResizeHeight))
   }
   RET_IF_ERR(uhdr_dec_probe(handle))
   if (mGainMapMetadataCfgFile != nullptr) {
@@ -1481,6 +1549,16 @@ static void usage(const char* name) {
           "          For HLG content, this defaults to 1000 nits. \n"
           "          For PQ content, this defaults to 10000 nits. \n"
           "          any real number in range [203, 10000]. \n");
+  fprintf(stderr,
+          "    -F    output compression format, optional. [0:jpeg (default)] \n");
+  fprintf(stderr,
+          "    -v    mirror direction, optional. [0:vertical, 1:horizontal] \n");
+  fprintf(stderr,
+          "    -r    rotate degrees, optional. [90,180,270] \n");
+  fprintf(stderr,
+          "    -S    crop window left,right,top,bottom, optional. \n");
+  fprintf(stderr,
+          "    -E    resize width,height, optional. \n");
   fprintf(stderr, "    -x    binary input resource containing exif data to insert, optional. \n");
   fprintf(stderr, "\n## decoder options : \n");
   fprintf(stderr, "    -j    ultra hdr compressed input resource, required. \n");
@@ -1496,6 +1574,8 @@ static void usage(const char* name) {
       "          srgb output color transfer shall be paired with rgba8888 only. \n"
       "          hlg, pq shall be paired with rgba1010102. \n"
       "          linear shall be paired with rgbahalffloat. \n");
+  fprintf(stderr,
+          "    -d    target display boost, optional. [float >= 1.0] \n");
   fprintf(stderr,
           "    -u    enable gles acceleration, optional. [0:disable (default), 1:enable]. \n");
   fprintf(stderr, "\n## common options : \n");
@@ -1568,7 +1648,8 @@ static void usage(const char* name) {
 }
 
 int main(int argc, char* argv[]) {
-  char opt_string[] = "p:y:i:g:f:w:h:C:c:t:q:o:O:m:j:e:a:b:z:R:s:M:Q:G:x:u:D:k:K:L:";
+  char opt_string[] =
+      "p:y:i:g:f:w:h:C:c:t:q:o:O:m:j:e:a:b:z:R:s:M:Q:G:x:u:D:k:K:L:F:d:v:r:S:E:";
   char *hdr_intent_raw_file = nullptr, *sdr_intent_raw_file = nullptr, *uhdr_file = nullptr,
        *sdr_intent_compressed_file = nullptr, *gainmap_compressed_file = nullptr,
        *gainmap_metadata_cfg_file = nullptr, *output_file = nullptr, *exif_file = nullptr;
@@ -1593,6 +1674,14 @@ int main(int argc, char* argv[]) {
   float min_content_boost = FLT_MIN;
   float max_content_boost = FLT_MAX;
   float target_disp_peak_brightness = -1.0f;
+  uhdr_codec_t out_media_type = UHDR_CODEC_JPG;
+  float display_boost = 1.0f;
+  int mirror_dir = -1;
+  int rotate_degrees = 0;
+  bool crop_enable = false;
+  int crop_left = 0, crop_right = 0, crop_top = 0, crop_bottom = 0;
+  bool resize_enable = false;
+  int resize_width = 0, resize_height = 0;
   int ch;
   while ((ch = getopt_s(argc, argv, opt_string)) != -1) {
     switch (ch) {
@@ -1690,6 +1779,27 @@ int main(int argc, char* argv[]) {
       case 'L':
         target_disp_peak_brightness = (float)atof(optarg_s);
         break;
+      case 'F':
+        out_media_type = static_cast<uhdr_codec_t>(atoi(optarg_s));
+        break;
+      case 'd':
+        display_boost = (float)atof(optarg_s);
+        break;
+      case 'v':
+        mirror_dir = atoi(optarg_s);
+        break;
+      case 'r':
+        rotate_degrees = atoi(optarg_s);
+        break;
+      case 'S':
+        crop_enable =
+            sscanf(optarg_s, "%d,%d,%d,%d", &crop_left, &crop_right, &crop_top,
+                   &crop_bottom) == 4;
+        break;
+      case 'E':
+        resize_enable =
+            sscanf(optarg_s, "%d,%d", &resize_width, &resize_height) == 2;
+        break;
       default:
         usage(argv[0]);
         return -1;
@@ -1719,6 +1829,18 @@ int main(int argc, char* argv[]) {
         hdr_tf, quality, out_tf, out_cf, use_full_range_color_hdr, gainmap_scale_factor,
         gainmap_compression_quality, use_multi_channel_gainmap, gamma, enable_gles, enc_preset,
         min_content_boost, max_content_boost, target_disp_peak_brightness);
+    appInput.mOutCodec = out_media_type;
+    appInput.mDisplayBoost = display_boost;
+    appInput.mMirrorDir = mirror_dir;
+    appInput.mRotateDegrees = rotate_degrees;
+    appInput.mCropEnable = crop_enable;
+    appInput.mCropLeft = crop_left;
+    appInput.mCropRight = crop_right;
+    appInput.mCropTop = crop_top;
+    appInput.mCropBottom = crop_bottom;
+    appInput.mResizeEnable = resize_enable;
+    appInput.mResizeWidth = resize_width;
+    appInput.mResizeHeight = resize_height;
     if (!appInput.encode()) return -1;
     if (compute_psnr == 1) {
       if (!appInput.decode()) return -1;
@@ -1753,6 +1875,18 @@ int main(int argc, char* argv[]) {
     UltraHdrAppInput appInput(gainmap_metadata_cfg_file, uhdr_file,
                               output_file ? output_file : "outrgb.raw", out_tf, out_cf,
                               enable_gles);
+    appInput.mOutCodec = out_media_type;
+    appInput.mDisplayBoost = display_boost;
+    appInput.mMirrorDir = mirror_dir;
+    appInput.mRotateDegrees = rotate_degrees;
+    appInput.mCropEnable = crop_enable;
+    appInput.mCropLeft = crop_left;
+    appInput.mCropRight = crop_right;
+    appInput.mCropTop = crop_top;
+    appInput.mCropBottom = crop_bottom;
+    appInput.mResizeEnable = resize_enable;
+    appInput.mResizeWidth = resize_width;
+    appInput.mResizeHeight = resize_height;
     if (!appInput.decode()) return -1;
   } else {
     if (argc > 1) std::cerr << "did not receive valid mode of operation " << mode << std::endl;
