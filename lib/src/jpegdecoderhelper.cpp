@@ -52,9 +52,9 @@ static constexpr uint8_t kIsoMetadataNameSpace[] = {
 const int kMinWidth = 8;
 const int kMinHeight = 8;
 
-// if max dimension is not defined, default to 8k resolution
+// if max dimension is not defined, default to 11656px resolution
 #ifndef UHDR_MAX_DIMENSION
-#define UHDR_MAX_DIMENSION 8192
+#define UHDR_MAX_DIMENSION 11656
 #endif
 static_assert(UHDR_MAX_DIMENSION >= (std::max)(kMinHeight, kMinWidth),
               "configured UHDR_MAX_DIMENSION must be atleast max(minWidth, minHeight)");
