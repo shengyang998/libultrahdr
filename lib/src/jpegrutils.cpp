@@ -117,14 +117,17 @@ class XMPXmlHandler : public XmlHandler {
   XMPXmlHandler() : XmlHandler() {
     state = NotStrarted;
     versionFound = false;
-    minContentBoostFound = false;
-    maxContentBoostFound = false;
-    gammaFound = false;
-    offsetSdrFound = false;
-    offsetHdrFound = false;
+    for (int i = 0; i < 3; ++i) {
+      minContentBoostFound[i] = false;
+      maxContentBoostFound[i] = false;
+      gammaFound[i] = false;
+      offsetSdrFound[i] = false;
+      offsetHdrFound[i] = false;
+    }
     hdrCapacityMinFound = false;
     hdrCapacityMaxFound = false;
     baseRenditionIsHdrFound = false;
+    lastChannel = 0;
   }
 
   enum ParseState { NotStrarted, Started, Done };
@@ -157,22 +160,63 @@ class XMPXmlHandler : public XmlHandler {
       if (context.BuildTokenValue(&val)) {
         if (!val.compare(versionAttrName)) {
           lastAttributeName = versionAttrName;
-        } else if (!val.compare(maxContentBoostAttrName)) {
-          lastAttributeName = maxContentBoostAttrName;
-        } else if (!val.compare(minContentBoostAttrName)) {
-          lastAttributeName = minContentBoostAttrName;
-        } else if (!val.compare(gammaAttrName)) {
-          lastAttributeName = gammaAttrName;
-        } else if (!val.compare(offsetSdrAttrName)) {
-          lastAttributeName = offsetSdrAttrName;
-        } else if (!val.compare(offsetHdrAttrName)) {
-          lastAttributeName = offsetHdrAttrName;
+          lastChannel = 0;
+        } else if (!val.compare(maxContentBoostAttrName) ||
+                   !val.compare(maxContentBoostAttrNameR)) {
+          lastAttributeName = maxContentBoostAttrNameR;
+          lastChannel = 0;
+        } else if (!val.compare(maxContentBoostAttrNameG)) {
+          lastAttributeName = maxContentBoostAttrNameG;
+          lastChannel = 1;
+        } else if (!val.compare(maxContentBoostAttrNameB)) {
+          lastAttributeName = maxContentBoostAttrNameB;
+          lastChannel = 2;
+        } else if (!val.compare(minContentBoostAttrName) ||
+                   !val.compare(minContentBoostAttrNameR)) {
+          lastAttributeName = minContentBoostAttrNameR;
+          lastChannel = 0;
+        } else if (!val.compare(minContentBoostAttrNameG)) {
+          lastAttributeName = minContentBoostAttrNameG;
+          lastChannel = 1;
+        } else if (!val.compare(minContentBoostAttrNameB)) {
+          lastAttributeName = minContentBoostAttrNameB;
+          lastChannel = 2;
+        } else if (!val.compare(gammaAttrName) || !val.compare(gammaAttrNameR)) {
+          lastAttributeName = gammaAttrNameR;
+          lastChannel = 0;
+        } else if (!val.compare(gammaAttrNameG)) {
+          lastAttributeName = gammaAttrNameG;
+          lastChannel = 1;
+        } else if (!val.compare(gammaAttrNameB)) {
+          lastAttributeName = gammaAttrNameB;
+          lastChannel = 2;
+        } else if (!val.compare(offsetSdrAttrName) || !val.compare(offsetSdrAttrNameR)) {
+          lastAttributeName = offsetSdrAttrNameR;
+          lastChannel = 0;
+        } else if (!val.compare(offsetSdrAttrNameG)) {
+          lastAttributeName = offsetSdrAttrNameG;
+          lastChannel = 1;
+        } else if (!val.compare(offsetSdrAttrNameB)) {
+          lastAttributeName = offsetSdrAttrNameB;
+          lastChannel = 2;
+        } else if (!val.compare(offsetHdrAttrName) || !val.compare(offsetHdrAttrNameR)) {
+          lastAttributeName = offsetHdrAttrNameR;
+          lastChannel = 0;
+        } else if (!val.compare(offsetHdrAttrNameG)) {
+          lastAttributeName = offsetHdrAttrNameG;
+          lastChannel = 1;
+        } else if (!val.compare(offsetHdrAttrNameB)) {
+          lastAttributeName = offsetHdrAttrNameB;
+          lastChannel = 2;
         } else if (!val.compare(hdrCapacityMinAttrName)) {
           lastAttributeName = hdrCapacityMinAttrName;
+          lastChannel = 0;
         } else if (!val.compare(hdrCapacityMaxAttrName)) {
           lastAttributeName = hdrCapacityMaxAttrName;
+          lastChannel = 0;
         } else if (!val.compare(baseRenditionIsHdrAttrName)) {
           lastAttributeName = baseRenditionIsHdrAttrName;
+          lastChannel = 0;
         } else {
           lastAttributeName = "";
         }
@@ -188,21 +232,31 @@ class XMPXmlHandler : public XmlHandler {
         if (!lastAttributeName.compare(versionAttrName)) {
           versionStr = val;
           versionFound = true;
-        } else if (!lastAttributeName.compare(maxContentBoostAttrName)) {
-          maxContentBoostStr = val;
-          maxContentBoostFound = true;
-        } else if (!lastAttributeName.compare(minContentBoostAttrName)) {
-          minContentBoostStr = val;
-          minContentBoostFound = true;
-        } else if (!lastAttributeName.compare(gammaAttrName)) {
-          gammaStr = val;
-          gammaFound = true;
-        } else if (!lastAttributeName.compare(offsetSdrAttrName)) {
-          offsetSdrStr = val;
-          offsetSdrFound = true;
-        } else if (!lastAttributeName.compare(offsetHdrAttrName)) {
-          offsetHdrStr = val;
-          offsetHdrFound = true;
+        } else if (!lastAttributeName.compare(maxContentBoostAttrNameR) ||
+                   !lastAttributeName.compare(maxContentBoostAttrNameG) ||
+                   !lastAttributeName.compare(maxContentBoostAttrNameB)) {
+          maxContentBoostStr[lastChannel] = val;
+          maxContentBoostFound[lastChannel] = true;
+        } else if (!lastAttributeName.compare(minContentBoostAttrNameR) ||
+                   !lastAttributeName.compare(minContentBoostAttrNameG) ||
+                   !lastAttributeName.compare(minContentBoostAttrNameB)) {
+          minContentBoostStr[lastChannel] = val;
+          minContentBoostFound[lastChannel] = true;
+        } else if (!lastAttributeName.compare(gammaAttrNameR) ||
+                   !lastAttributeName.compare(gammaAttrNameG) ||
+                   !lastAttributeName.compare(gammaAttrNameB)) {
+          gammaStr[lastChannel] = val;
+          gammaFound[lastChannel] = true;
+        } else if (!lastAttributeName.compare(offsetSdrAttrNameR) ||
+                   !lastAttributeName.compare(offsetSdrAttrNameG) ||
+                   !lastAttributeName.compare(offsetSdrAttrNameB)) {
+          offsetSdrStr[lastChannel] = val;
+          offsetSdrFound[lastChannel] = true;
+        } else if (!lastAttributeName.compare(offsetHdrAttrNameR) ||
+                   !lastAttributeName.compare(offsetHdrAttrNameG) ||
+                   !lastAttributeName.compare(offsetHdrAttrNameB)) {
+          offsetHdrStr[lastChannel] = val;
+          offsetHdrFound[lastChannel] = true;
         } else if (!lastAttributeName.compare(hdrCapacityMinAttrName)) {
           hdrCapacityMinStr = val;
           hdrCapacityMinFound = true;
@@ -228,10 +282,10 @@ class XMPXmlHandler : public XmlHandler {
     }
   }
 
-  bool getMaxContentBoost(float* max_content_boost, bool* present) {
+  bool getMaxContentBoost(float* max_content_boost, bool* present, int channel) {
     if (state == Done) {
-      *present = maxContentBoostFound;
-      stringstream ss(maxContentBoostStr);
+      *present = maxContentBoostFound[channel];
+      stringstream ss(maxContentBoostStr[channel]);
       float val;
       if (ss >> val) {
         *max_content_boost = exp2(val);
@@ -244,10 +298,10 @@ class XMPXmlHandler : public XmlHandler {
     }
   }
 
-  bool getMinContentBoost(float* min_content_boost, bool* present) {
+  bool getMinContentBoost(float* min_content_boost, bool* present, int channel) {
     if (state == Done) {
-      *present = minContentBoostFound;
-      stringstream ss(minContentBoostStr);
+      *present = minContentBoostFound[channel];
+      stringstream ss(minContentBoostStr[channel]);
       float val;
       if (ss >> val) {
         *min_content_boost = exp2(val);
@@ -260,10 +314,10 @@ class XMPXmlHandler : public XmlHandler {
     }
   }
 
-  bool getGamma(float* gamma, bool* present) {
+  bool getGamma(float* gamma, bool* present, int channel) {
     if (state == Done) {
-      *present = gammaFound;
-      stringstream ss(gammaStr);
+      *present = gammaFound[channel];
+      stringstream ss(gammaStr[channel]);
       float val;
       if (ss >> val) {
         *gamma = val;
@@ -276,10 +330,10 @@ class XMPXmlHandler : public XmlHandler {
     }
   }
 
-  bool getOffsetSdr(float* offset_sdr, bool* present) {
+  bool getOffsetSdr(float* offset_sdr, bool* present, int channel) {
     if (state == Done) {
-      *present = offsetSdrFound;
-      stringstream ss(offsetSdrStr);
+      *present = offsetSdrFound[channel];
+      stringstream ss(offsetSdrStr[channel]);
       float val;
       if (ss >> val) {
         *offset_sdr = val;
@@ -292,10 +346,10 @@ class XMPXmlHandler : public XmlHandler {
     }
   }
 
-  bool getOffsetHdr(float* offset_hdr, bool* present) {
+  bool getOffsetHdr(float* offset_hdr, bool* present, int channel) {
     if (state == Done) {
-      *present = offsetHdrFound;
-      stringstream ss(offsetHdrStr);
+      *present = offsetHdrFound[channel];
+      stringstream ss(offsetHdrStr[channel]);
       float val;
       if (ss >> val) {
         *offset_hdr = val;
@@ -364,20 +418,35 @@ class XMPXmlHandler : public XmlHandler {
   string versionStr;
   bool versionFound;
   static const string maxContentBoostAttrName;
-  string maxContentBoostStr;
-  bool maxContentBoostFound;
+  static const string maxContentBoostAttrNameR;
+  static const string maxContentBoostAttrNameG;
+  static const string maxContentBoostAttrNameB;
+  string maxContentBoostStr[3];
+  bool maxContentBoostFound[3];
   static const string minContentBoostAttrName;
-  string minContentBoostStr;
-  bool minContentBoostFound;
+  static const string minContentBoostAttrNameR;
+  static const string minContentBoostAttrNameG;
+  static const string minContentBoostAttrNameB;
+  string minContentBoostStr[3];
+  bool minContentBoostFound[3];
   static const string gammaAttrName;
-  string gammaStr;
-  bool gammaFound;
+  static const string gammaAttrNameR;
+  static const string gammaAttrNameG;
+  static const string gammaAttrNameB;
+  string gammaStr[3];
+  bool gammaFound[3];
   static const string offsetSdrAttrName;
-  string offsetSdrStr;
-  bool offsetSdrFound;
+  static const string offsetSdrAttrNameR;
+  static const string offsetSdrAttrNameG;
+  static const string offsetSdrAttrNameB;
+  string offsetSdrStr[3];
+  bool offsetSdrFound[3];
   static const string offsetHdrAttrName;
-  string offsetHdrStr;
-  bool offsetHdrFound;
+  static const string offsetHdrAttrNameR;
+  static const string offsetHdrAttrNameG;
+  static const string offsetHdrAttrNameB;
+  string offsetHdrStr[3];
+  bool offsetHdrFound[3];
   static const string hdrCapacityMinAttrName;
   string hdrCapacityMinStr;
   bool hdrCapacityMinFound;
@@ -389,6 +458,7 @@ class XMPXmlHandler : public XmlHandler {
   bool baseRenditionIsHdrFound;
 
   string lastAttributeName;
+  int lastChannel;
   ParseState state;
 };
 
@@ -423,10 +493,25 @@ const string kGainMapPrefix = "hdrgm";
 // GainMap XMP constants - element and attribute names
 const string kMapVersion = Name(kGainMapPrefix, "Version");
 const string kMapGainMapMin = Name(kGainMapPrefix, "GainMapMin");
+const string kMapGainMapMinR = Name(kGainMapPrefix, "GainMapMinR");
+const string kMapGainMapMinG = Name(kGainMapPrefix, "GainMapMinG");
+const string kMapGainMapMinB = Name(kGainMapPrefix, "GainMapMinB");
 const string kMapGainMapMax = Name(kGainMapPrefix, "GainMapMax");
+const string kMapGainMapMaxR = Name(kGainMapPrefix, "GainMapMaxR");
+const string kMapGainMapMaxG = Name(kGainMapPrefix, "GainMapMaxG");
+const string kMapGainMapMaxB = Name(kGainMapPrefix, "GainMapMaxB");
 const string kMapGamma = Name(kGainMapPrefix, "Gamma");
+const string kMapGammaR = Name(kGainMapPrefix, "GammaR");
+const string kMapGammaG = Name(kGainMapPrefix, "GammaG");
+const string kMapGammaB = Name(kGainMapPrefix, "GammaB");
 const string kMapOffsetSdr = Name(kGainMapPrefix, "OffsetSDR");
+const string kMapOffsetSdrR = Name(kGainMapPrefix, "OffsetSDRR");
+const string kMapOffsetSdrG = Name(kGainMapPrefix, "OffsetSDRG");
+const string kMapOffsetSdrB = Name(kGainMapPrefix, "OffsetSDRB");
 const string kMapOffsetHdr = Name(kGainMapPrefix, "OffsetHDR");
+const string kMapOffsetHdrR = Name(kGainMapPrefix, "OffsetHDRR");
+const string kMapOffsetHdrG = Name(kGainMapPrefix, "OffsetHDRG");
+const string kMapOffsetHdrB = Name(kGainMapPrefix, "OffsetHDRB");
 const string kMapHDRCapacityMin = Name(kGainMapPrefix, "HDRCapacityMin");
 const string kMapHDRCapacityMax = Name(kGainMapPrefix, "HDRCapacityMax");
 const string kMapBaseRenditionIsHDR = Name(kGainMapPrefix, "BaseRenditionIsHDR");
@@ -434,10 +519,25 @@ const string kMapBaseRenditionIsHDR = Name(kGainMapPrefix, "BaseRenditionIsHDR")
 // GainMap XMP constants - names for XMP handlers
 const string XMPXmlHandler::versionAttrName = kMapVersion;
 const string XMPXmlHandler::minContentBoostAttrName = kMapGainMapMin;
+const string XMPXmlHandler::minContentBoostAttrNameR = kMapGainMapMinR;
+const string XMPXmlHandler::minContentBoostAttrNameG = kMapGainMapMinG;
+const string XMPXmlHandler::minContentBoostAttrNameB = kMapGainMapMinB;
 const string XMPXmlHandler::maxContentBoostAttrName = kMapGainMapMax;
+const string XMPXmlHandler::maxContentBoostAttrNameR = kMapGainMapMaxR;
+const string XMPXmlHandler::maxContentBoostAttrNameG = kMapGainMapMaxG;
+const string XMPXmlHandler::maxContentBoostAttrNameB = kMapGainMapMaxB;
 const string XMPXmlHandler::gammaAttrName = kMapGamma;
+const string XMPXmlHandler::gammaAttrNameR = kMapGammaR;
+const string XMPXmlHandler::gammaAttrNameG = kMapGammaG;
+const string XMPXmlHandler::gammaAttrNameB = kMapGammaB;
 const string XMPXmlHandler::offsetSdrAttrName = kMapOffsetSdr;
+const string XMPXmlHandler::offsetSdrAttrNameR = kMapOffsetSdrR;
+const string XMPXmlHandler::offsetSdrAttrNameG = kMapOffsetSdrG;
+const string XMPXmlHandler::offsetSdrAttrNameB = kMapOffsetSdrB;
 const string XMPXmlHandler::offsetHdrAttrName = kMapOffsetHdr;
+const string XMPXmlHandler::offsetHdrAttrNameR = kMapOffsetHdrR;
+const string XMPXmlHandler::offsetHdrAttrNameG = kMapOffsetHdrG;
+const string XMPXmlHandler::offsetHdrAttrNameB = kMapOffsetHdrB;
 const string XMPXmlHandler::hdrCapacityMinAttrName = kMapHDRCapacityMin;
 const string XMPXmlHandler::hdrCapacityMaxAttrName = kMapHDRCapacityMax;
 const string XMPXmlHandler::baseRenditionIsHdrAttrName = kMapBaseRenditionIsHDR;
@@ -532,7 +632,7 @@ uhdr_error_info_t getMetadataFromXMP(uint8_t* xmp_data, size_t xmp_size,
              kMapVersion.c_str());
     return status;
   }
-  if (!handler.getMaxContentBoost(&metadata->max_content_boost[0], &present) || !present) {
+  if (!handler.getMaxContentBoost(&metadata->max_content_boost[0], &present, 0) || !present) {
     uhdr_error_info_t status;
     status.error_code = UHDR_CODEC_ERROR;
     status.has_detail = 1;
@@ -548,7 +648,7 @@ uhdr_error_info_t getMetadataFromXMP(uint8_t* xmp_data, size_t xmp_size,
              kMapHDRCapacityMax.c_str());
     return status;
   }
-  if (!handler.getMinContentBoost(&metadata->min_content_boost[0], &present)) {
+  if (!handler.getMinContentBoost(&metadata->min_content_boost[0], &present, 0)) {
     if (present) {
       uhdr_error_info_t status;
       status.error_code = UHDR_CODEC_ERROR;
@@ -559,7 +659,7 @@ uhdr_error_info_t getMetadataFromXMP(uint8_t* xmp_data, size_t xmp_size,
     }
     metadata->min_content_boost[0] = 1.0f;
   }
-  if (!handler.getGamma(&metadata->gamma[0], &present)) {
+  if (!handler.getGamma(&metadata->gamma[0], &present, 0)) {
     if (present) {
       uhdr_error_info_t status;
       status.error_code = UHDR_CODEC_ERROR;
@@ -570,7 +670,7 @@ uhdr_error_info_t getMetadataFromXMP(uint8_t* xmp_data, size_t xmp_size,
     }
     metadata->gamma[0] = 1.0f;
   }
-  if (!handler.getOffsetSdr(&metadata->offset_sdr[0], &present)) {
+  if (!handler.getOffsetSdr(&metadata->offset_sdr[0], &present, 0)) {
     if (present) {
       uhdr_error_info_t status;
       status.error_code = UHDR_CODEC_ERROR;
@@ -581,7 +681,7 @@ uhdr_error_info_t getMetadataFromXMP(uint8_t* xmp_data, size_t xmp_size,
     }
     metadata->offset_sdr[0] = 1.0f / 64.0f;
   }
-  if (!handler.getOffsetHdr(&metadata->offset_hdr[0], &present)) {
+  if (!handler.getOffsetHdr(&metadata->offset_hdr[0], &present, 0)) {
     if (present) {
       uhdr_error_info_t status;
       status.error_code = UHDR_CODEC_ERROR;
@@ -624,11 +724,18 @@ uhdr_error_info_t getMetadataFromXMP(uint8_t* xmp_data, size_t xmp_size,
     return status;
   }
   metadata->use_base_cg = true;
-  std::fill_n(metadata->min_content_boost + 1, 2, metadata->min_content_boost[0]);
-  std::fill_n(metadata->max_content_boost + 1, 2, metadata->max_content_boost[0]);
-  std::fill_n(metadata->gamma + 1, 2, metadata->gamma[0]);
-  std::fill_n(metadata->offset_hdr + 1, 2, metadata->offset_hdr[0]);
-  std::fill_n(metadata->offset_sdr + 1, 2, metadata->offset_sdr[0]);
+  for (int c = 1; c < 3; ++c) {
+    if (!handler.getMaxContentBoost(&metadata->max_content_boost[c], &present, c) || !present)
+      metadata->max_content_boost[c] = metadata->max_content_boost[0];
+    if (!handler.getMinContentBoost(&metadata->min_content_boost[c], &present, c))
+      metadata->min_content_boost[c] = metadata->min_content_boost[0];
+    if (!handler.getGamma(&metadata->gamma[c], &present, c))
+      metadata->gamma[c] = metadata->gamma[0];
+    if (!handler.getOffsetSdr(&metadata->offset_sdr[c], &present, c))
+      metadata->offset_sdr[c] = metadata->offset_sdr[0];
+    if (!handler.getOffsetHdr(&metadata->offset_hdr[c], &present, c))
+      metadata->offset_hdr[c] = metadata->offset_hdr[0];
+  }
 
   return g_no_error;
 }
@@ -685,11 +792,29 @@ string generateXmpForSecondaryImage(uhdr_gainmap_metadata_ext_t& metadata) {
   writer.StartWritingElement("rdf:Description");
   writer.WriteXmlns(kGainMapPrefix, kGainMapUri);
   writer.WriteAttributeNameAndValue(kMapVersion, metadata.version);
-  writer.WriteAttributeNameAndValue(kMapGainMapMin, log2(metadata.min_content_boost[0]));
-  writer.WriteAttributeNameAndValue(kMapGainMapMax, log2(metadata.max_content_boost[0]));
-  writer.WriteAttributeNameAndValue(kMapGamma, metadata.gamma[0]);
-  writer.WriteAttributeNameAndValue(kMapOffsetSdr, metadata.offset_sdr[0]);
-  writer.WriteAttributeNameAndValue(kMapOffsetHdr, metadata.offset_hdr[0]);
+  if (metadata.are_all_channels_identical()) {
+    writer.WriteAttributeNameAndValue(kMapGainMapMin, log2(metadata.min_content_boost[0]));
+    writer.WriteAttributeNameAndValue(kMapGainMapMax, log2(metadata.max_content_boost[0]));
+    writer.WriteAttributeNameAndValue(kMapGamma, metadata.gamma[0]);
+    writer.WriteAttributeNameAndValue(kMapOffsetSdr, metadata.offset_sdr[0]);
+    writer.WriteAttributeNameAndValue(kMapOffsetHdr, metadata.offset_hdr[0]);
+  } else {
+    writer.WriteAttributeNameAndValue(kMapGainMapMinR, log2(metadata.min_content_boost[0]));
+    writer.WriteAttributeNameAndValue(kMapGainMapMinG, log2(metadata.min_content_boost[1]));
+    writer.WriteAttributeNameAndValue(kMapGainMapMinB, log2(metadata.min_content_boost[2]));
+    writer.WriteAttributeNameAndValue(kMapGainMapMaxR, log2(metadata.max_content_boost[0]));
+    writer.WriteAttributeNameAndValue(kMapGainMapMaxG, log2(metadata.max_content_boost[1]));
+    writer.WriteAttributeNameAndValue(kMapGainMapMaxB, log2(metadata.max_content_boost[2]));
+    writer.WriteAttributeNameAndValue(kMapGammaR, metadata.gamma[0]);
+    writer.WriteAttributeNameAndValue(kMapGammaG, metadata.gamma[1]);
+    writer.WriteAttributeNameAndValue(kMapGammaB, metadata.gamma[2]);
+    writer.WriteAttributeNameAndValue(kMapOffsetSdrR, metadata.offset_sdr[0]);
+    writer.WriteAttributeNameAndValue(kMapOffsetSdrG, metadata.offset_sdr[1]);
+    writer.WriteAttributeNameAndValue(kMapOffsetSdrB, metadata.offset_sdr[2]);
+    writer.WriteAttributeNameAndValue(kMapOffsetHdrR, metadata.offset_hdr[0]);
+    writer.WriteAttributeNameAndValue(kMapOffsetHdrG, metadata.offset_hdr[1]);
+    writer.WriteAttributeNameAndValue(kMapOffsetHdrB, metadata.offset_hdr[2]);
+  }
   writer.WriteAttributeNameAndValue(kMapHDRCapacityMin, log2(metadata.hdr_capacity_min));
   writer.WriteAttributeNameAndValue(kMapHDRCapacityMax, log2(metadata.hdr_capacity_max));
   writer.WriteAttributeNameAndValue(kMapBaseRenditionIsHDR, "False");
