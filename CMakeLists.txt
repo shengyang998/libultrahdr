@@ -150,6 +150,10 @@ option_if_not_defined(UHDR_ENABLE_WERROR "Build with -Werror" FALSE)
 option_if_not_defined(UHDR_WRITE_XMP "Write gainmap metadata in XMP packet" FALSE)
 option_if_not_defined(UHDR_WRITE_ISO "Write gainmap metadata in ISO 21496_1 packet" TRUE)
 
+if(NOT DEFINED UHDR_MAX_DIMENSION)
+  set(UHDR_MAX_DIMENSION 11656 CACHE STRING "Maximum dimension supported by the library")
+endif()
+
 # pre-requisites
 if(UHDR_BUILD_TESTS AND EMSCRIPTEN)
   message(FATAL_ERROR "Building tests not supported for wasm targets")
